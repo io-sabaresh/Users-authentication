@@ -61,7 +61,12 @@ const UserSchema = new Schema({
             max: 999999
         },
         expiresAt: Date,
-        isUsed: {
+        isOTPVerified: {
+            type: Boolean,
+            default: false
+        },
+        resetBefore: Date,
+        isResetDone: {
             type: Boolean,
             default: false
         }

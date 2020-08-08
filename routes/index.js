@@ -5,7 +5,7 @@ const jwt = require('../interceptors/jwt');
 const { verifyUserJWT, updateNewPassword } = require('../api/users');
 const { userLogin, loginPage } = require('../api/login');
 const { userRegistration, verifyUserRegistration } = require('../api/signup');
-
+const { forgotPasswordOTP, verifyForgotPasswordOTP } = require('../api/forgotPassword');
 
 // Render Login Page (sample/test)
 route.get('/login', loginPage);
@@ -25,8 +25,12 @@ route.post('/token', jwt, verifyUserJWT);
 // Reset new password
 route.put('/password', jwt, updateNewPassword);
 
-// route.post('/forgot-password', forgotPasswordOTP);
-// route.post('/forgot-password/otp', verifyForgotPasswordOTP);
+// Send forgot password OTP mail
+route.post('/forgot-password', forgotPasswordOTP);
+
+// Verify the reset password OTP
+route.post('/forgot-password/otp', verifyForgotPasswordOTP);
+
 // route.put('/forgot-password/reset', resetNewPassword);
 
 module.exports = route;

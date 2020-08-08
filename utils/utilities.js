@@ -67,6 +67,13 @@ const encryptString = (string) => {
     return bcrypt.hashSync(string, salt);
 }
 
+/**
+ * Generate 6 Digit random number
+ */
+const generateRadomNumber = () => {
+    return Math.floor(100000 + Math.random() * 900000)
+}
+
 module.exports = {
     isValidObjectId,
     mongoId,
@@ -75,5 +82,6 @@ module.exports = {
     isNullOrUndefined,
     generateRandonString,
     addMinutes,
-    encryptString
+    encryptString,
+    generateRadomNumber
 }

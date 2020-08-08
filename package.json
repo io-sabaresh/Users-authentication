@@ -39,7 +39,8 @@
     "morgan": "^1.10.0",
     "passport": "^0.4.1",
     "passport-local": "^1.0.0",
-    "randomstring": "^1.1.5"
+    "randomstring": "^1.1.5",
+    "validator": "^13.1.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.4"
