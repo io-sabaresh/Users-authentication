@@ -10,7 +10,7 @@ module.exports = {
     // Email Sent from
     EMAIL_FROM: process.env.EMAIL_FROM,
     // JWT Managed by Headers/cookies
-    JWT_METHOD: process.env.JWT_METHOD,
+    JWT_METHOD: process.env.JWT_METHOD || 'HEADER',
     // JWT secret
     JWT_SECRET: process.env.JWT_SECRET,
     // JWT expires in
@@ -32,7 +32,10 @@ module.exports = {
      * Global Constants
      */
     VERIFICATION_TOKEN_SPLIT: '--',
-    HOUR_IN_MINUTES: 60
+    SPACE: " ",
+    HOUR_IN_MINUTES: 60,
+    HEADER_TOKEN: "HEADER",
+    COOKIE_TOKEN: "COOKIE"
 }
 
 
