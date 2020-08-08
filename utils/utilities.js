@@ -3,6 +3,8 @@ const moment = require('moment');
 const randomstring = require("randomstring");
 const { ObjectId } = require('mongoose').Types;
 const { isNull, isUndefined } = require('lodash');
+const bcrypt = require('bcrypt');
+const { BCRYPT_SALT: SALT } = require('../constants');
 
 /**
  * Checks If an id is valid MongoDB ObjectId or not
@@ -56,6 +58,15 @@ const addMinutes = (minutes, time = new Date()) => {
     return moment(time).add(minutes, 'minutes').toISOString();
 }
 
+/**
+ * Encrypt the password
+ * @param {String} string 
+ */
+const encryptString = (string) => {
+    const salt = bcrypt.genSaltSync(parseInt(SALT));
+    return bcrypt.hashSync(string, salt);
+}
+
 module.exports = {
     isValidObjectId,
     mongoId,
@@ -63,5 +74,6 @@ module.exports = {
     isBeforeExpire,
     isNullOrUndefined,
     generateRandonString,
-    addMinutes
+    addMinutes,
+    encryptString
 }

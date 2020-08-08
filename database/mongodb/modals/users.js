@@ -3,6 +3,7 @@ const Schema = mongoose.Schema;
 const ObjectId = Schema.ObjectId;
 const bcrypt = require('bcrypt');
 const { BCRYPT_SALT: SALT } = require('../../../constants');
+const { encryptString } = require('../../../utils/utilities')
 
 const UserSchema = new Schema({
     username: {
@@ -75,16 +76,9 @@ UserSchema.pre('save', function (next) {
 
     if (!user.isModified('password')) return next();
 
-    bcrypt.genSalt(parseInt(SALT), function (err, salt) {
-        if (err) return next(err);
-
-        bcrypt.hash(user.password, salt, function (err, hash) {
-            if (err) return next(err);
-
-            user.password = hash;
-            next();
-        });
-    });
+    const hash = encryptString(user.password);
+    user.password = hash;
+    next();
 });
 
 UserSchema.methods.comparePassword = function (password) {

@@ -2,7 +2,7 @@ const passport = require('passport');
 const route = require('express').Router();
 
 const jwt = require('../interceptors/jwt');
-const { verifyUserJWT } = require('../api/users');
+const { verifyUserJWT, updateNewPassword } = require('../api/users');
 const { userLogin, loginPage } = require('../api/login');
 const { userRegistration, verifyUserRegistration } = require('../api/signup');
 
@@ -22,11 +22,11 @@ route.get('/register', verifyUserRegistration);
 // Verify JWT token and Fetch user details
 route.post('/token', jwt, verifyUserJWT);
 
-
+// Reset new password
+route.put('/password', jwt, updateNewPassword);
 
 // route.post('/forgot-password', forgotPasswordOTP);
 // route.post('/forgot-password/otp', verifyForgotPasswordOTP);
 // route.put('/forgot-password/reset', resetNewPassword);
-// route.put('/password', jwt, updateNewPassword);
 
 module.exports = route;
