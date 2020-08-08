@@ -1,6 +1,8 @@
 'use strict';
-const { isNullOrUndefined, mongoId, encryptString } = require('../utils/utilities');
+const sendMail = require('../email');
+const passwordChangedMail = require('../email/templates/newPasswordUpdated');
 const { updateUser } = require('../database/mongodb/services/userServices');
+const { isNullOrUndefined, mongoId, encryptString } = require('../utils/utilities');
 const { INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED, BAD_REQUEST } = require('http-status-codes');
 
 const verifyUserJWT = async (req, res) => {
@@ -23,6 +25,9 @@ const updateNewPassword = async (req, res) => {
             password: encryptString(req.body.password.trim()),
             tokenValidFrom: new Date()
         });
+
+        const mailTemplate = passwordChangedMail(req.user.email);
+        sendMail(mailTemplate);
         
         res.status(OK).json({ success: true, message: `Password updated` });
     } catch (error) {
