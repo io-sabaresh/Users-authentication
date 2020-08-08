@@ -9,6 +9,14 @@ module.exports = {
     PORT: process.env.PORT || 5000,
     // Email Sent from
     EMAIL_FROM: process.env.EMAIL_FROM,
+    // JWT Managed by Headers/cookies
+    JWT_METHOD: process.env.JWT_METHOD,
+    // JWT secret
+    JWT_SECRET: process.env.JWT_SECRET,
+    // JWT expires in
+    JWT_EXPIRATION: process.env.JWT_EXPIRATION || '24h',
+    // JWT Cookie name in case if the token is passed through cookies
+    COOKIE_NAME: process.env.COOKIE_NAME,
     // Bcrypt salt rounds
     BCRYPT_SALT: process.env.BCRYPT_SALT,
     // Login page url to redirect on registration
@@ -35,6 +43,10 @@ module.exports = {
 PORT=
 BCRYPT_SALT=
 EMAIL_FROM=
+JWT_METHOD= #[HEADER / COOKIE]
+JWT_SECRET=
+JWT_EXPIRATION=
+COOKIE_NAME=
 LOGIN_PAGE=
 USER_VERIFICATION_API=
 SENDGRID_API_KEY=
