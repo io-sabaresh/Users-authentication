@@ -1,10 +1,11 @@
 'use stript';
 const sendMail = require('../email');
 const validator = require('validator');
+const passwordChangedMail = require('../email/templates/newPasswordUpdated');
 const forgotPasswordOTPMail = require('../email/templates/forgotPasswordOTP');
 const { findOneUser, updateUser } = require('../database/mongodb/services/userServices');
-const { INTERNAL_SERVER_ERROR, OK, BAD_REQUEST, NOT_FOUND } = require('http-status-codes');
-const { isNullOrUndefined, generateRadomNumber, mongoId, addMinutes } = require('../utils/utilities');
+const { INTERNAL_SERVER_ERROR, OK, BAD_REQUEST, NOT_FOUND, UNAUTHORIZED } = require('http-status-codes');
+const { isNullOrUndefined, generateRadomNumber, mongoId, addMinutes, encryptString } = require('../utils/utilities');
 
 const forgotPasswordOTP = async (req, res) => {
     try {
@@ -22,7 +23,8 @@ const forgotPasswordOTP = async (req, res) => {
             "resetPassword.otp": OTP,
             "resetPassword.expiresAt": addMinutes(5),
             isOTPVerified: false,
-            "resetPassword.resetBefore": null
+            "resetPassword.resetBefore": null,
+            "resetPassword.isOTPVerified": false,
         });
 
         const OTPMailTemplate = forgotPasswordOTPMail(req.body.email, OTP);
@@ -47,7 +49,6 @@ const verifyForgotPasswordOTP = async (req, res) => {
                 $gte: new Date()
             },
             "resetPassword.isOTPVerified": false,
-           
         }, "email");
 
 
@@ -62,12 +63,43 @@ const verifyForgotPasswordOTP = async (req, res) => {
 
         res.status(OK).json({ success: true, message: 'OTP verified successfully' });
     } catch (error) {
-        console.log('error:' ,error)
+        res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error });
+    }
+}
+
+const resetNewPassword = async (req, res) => {
+    try {
+        if(isNullOrUndefined(req.body.email) || isNullOrUndefined(req.body.password))
+            return res(BAD_REQUEST).json({ success: false, message: 'Insuffecient data' });
+
+        const userDetails = await findOneUser({ 
+            email: req.body.email,
+            "resetPassword.isResetDone": false,
+            "resetPassword.resetBefore": {
+                $gte: new Date()
+            }
+        }, 'isVerified');
+
+        if(isNullOrUndefined(userDetails) || userDetails.isVerified !== true) 
+            return res.status(UNAUTHORIZED).json({ success: false, message: 'Email Not registered or verified' });
+
+        await updateUser({ _id: mongoId(userDetails._id)}, {
+            password: encryptString(req.body.password.trim()),
+            tokenValidFrom: new Date(),
+            "resetPassword.isResetDone": true
+        });
+
+        const mailTemplate = passwordChangedMail(req.body.email);
+        sendMail(mailTemplate);
+        
+        res.status(OK).json({ success: true, message: `Password updated` });
+    } catch (error) {
         res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error });
     }
 }
 
 module.exports = {
     forgotPasswordOTP,
-    verifyForgotPasswordOTP
+    verifyForgotPasswordOTP,
+    resetNewPassword
 }
