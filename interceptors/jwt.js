@@ -1,5 +1,6 @@
 'use strict';
 const { verifyJWT } = require('../utils/jwt');
+const { ErrorHandler } = require('../interceptors/errors');
 const { isNullOrUndefined, mongoId } = require('../utils/utilities');
 const { findOneUser } = require('../database/mongodb/services/userServices');
 const { INTERNAL_SERVER_ERROR, UNAUTHORIZED } = require('http-status-codes');

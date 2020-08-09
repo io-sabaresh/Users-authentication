@@ -1,15 +1,16 @@
 'use strict';
 const sendMail = require('../email');
+const { ErrorHandler } = require('../interceptors/errors');
 const verificationEmail = require('../email/templates/verifyRegistration');
-const { INTERNAL_SERVER_ERROR, BAD_REQUEST, OK, CONFLICT } = require('http-status-codes');
+const { BAD_REQUEST, OK, CONFLICT } = require('http-status-codes');
 const { USER_VERIFICATION_API, HOUR_IN_MINUTES, VERIFICATION_TOKEN_SPLIT, LOGIN_PAGE } = require('../constants');
 const { isNullOrUndefined, generateRandonString, mongoId, addMinutes } = require('../utils/utilities');
 const { findOneUser, createNewUser, updateUser } = require('../database/mongodb/services/userServices');
 
-const userRegistration = async (req, res) => {
+const userRegistration = async (req, res, next) => {
     try {
         if (isNullOrUndefined(req.body.email) || isNullOrUndefined(req.body.password) || isNullOrUndefined(req.body.password))
-            return res.status(BAD_REQUEST).json({ success: false, message: `Bad Request` });
+            throw new ErrorHandler(BAD_REQUEST, `Bad Request`);
 
         let user = await findOneUser({ email: req.body.email }, "isVerified");
 
@@ -22,7 +23,7 @@ const userRegistration = async (req, res) => {
             });
         } else { // Already registred user
             if (user.isVerified === true) // If the user is verified
-                return res.status(CONFLICT).json({ success: false, message: `User already exist!` });
+                throw new ErrorHandler(CONFLICT, `User already exist!`);
         }
 
         const key = `${user._id}${VERIFICATION_TOKEN_SPLIT}${generateRandonString()}`; // User Specific key for registration
@@ -41,16 +42,15 @@ const userRegistration = async (req, res) => {
 
         res.status(OK).json({ success: true, message: `Success` });
     } catch (error) {
-        console.log(error)
-        res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error });
+        next(error);
     }
 }
 
 
-const verifyUserRegistration = async (req, res) => {
+const verifyUserRegistration = async (req, res, next) => {
     try {
         if (isNullOrUndefined(req.query.token) || (req.query.token).split(VERIFICATION_TOKEN_SPLIT).length !== 2)
-            return res.status(BAD_REQUEST).json({ success: false, message: `Token missing or Invalid` });
+            throw new ErrorHandler(BAD_REQUEST, `Token missing or Invalid`);
 
         const userId = req.query.token.split(VERIFICATION_TOKEN_SPLIT)[0];
 
@@ -65,7 +65,7 @@ const verifyUserRegistration = async (req, res) => {
         const user = await findOneUser(query, "isVerified registration");
 
         if (isNullOrUndefined(user))
-            return res.status(BAD_REQUEST).json({ success: false, message: `Token Invalid or already used` });
+            throw new ErrorHandler(BAD_REQUEST, `Token Invalid or already used`);
 
         await updateUser({ _id: mongoId(user._id) }, { // Upate registration key in DB
             registration: {
@@ -78,7 +78,7 @@ const verifyUserRegistration = async (req, res) => {
 
         res.redirect(LOGIN_PAGE);
     } catch (error) {
-        res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error });
+        next(error);
     }
 }
 

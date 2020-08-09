@@ -1,25 +1,27 @@
 'use stript';
 const sendMail = require('../email');
 const validator = require('validator');
+const { ErrorHandler } = require('../interceptors/errors');
 const passwordChangedMail = require('../email/templates/newPasswordUpdated');
 const forgotPasswordOTPMail = require('../email/templates/forgotPasswordOTP');
+const { OK, BAD_REQUEST, NOT_FOUND, UNAUTHORIZED } = require('http-status-codes');
 const { findOneUser, updateUser } = require('../database/mongodb/services/userServices');
-const { INTERNAL_SERVER_ERROR, OK, BAD_REQUEST, NOT_FOUND, UNAUTHORIZED } = require('http-status-codes');
 const { isNullOrUndefined, generateRadomNumber, mongoId, addMinutes, encryptString } = require('../utils/utilities');
 
-const forgotPasswordOTP = async (req, res) => {
+const forgotPasswordOTP = async (req, res, next) => {
     try {
-        if(isNullOrUndefined(req.body.email) || !validator.isEmail(req.body.email))
-            return res.status(BAD_REQUEST).json({ success: false, message: 'Invalid email' });
+        if (isNullOrUndefined(req.body.email) || !validator.isEmail(req.body.email))
+            throw new ErrorHandler(BAD_REQUEST, 'Invalid email');
 
         const userDetails = await findOneUser({ email: req.body.email }, 'isVerified');
 
-        if(isNullOrUndefined(userDetails) || userDetails.isVerified !== true) 
-            return res.status(NOT_FOUND).json({ success: false, message: 'Email Not registered or verified' });
+        if (isNullOrUndefined(userDetails) || userDetails.isVerified !== true)
+            throw new ErrorHandler(NOT_FOUND, 'Email Not registered or verified');
+
 
         const OTP = generateRadomNumber();
 
-        await updateUser({ _id: mongoId(userDetails._id)}, {
+        await updateUser({ _id: mongoId(userDetails._id) }, {
             "resetPassword.otp": OTP,
             "resetPassword.expiresAt": addMinutes(5),
             isOTPVerified: false,
@@ -30,19 +32,19 @@ const forgotPasswordOTP = async (req, res) => {
         const OTPMailTemplate = forgotPasswordOTPMail(req.body.email, OTP);
         sendMail(OTPMailTemplate);
 
-        res.status(OK).json({ success: true, message: 'OTP sent to your email'})
+        res.status(OK).json({ success: true, message: 'OTP sent to your email' })
     } catch (error) {
-        res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error });
+        next(error)
     }
 }
 
 
-const verifyForgotPasswordOTP = async (req, res) => {
+const verifyForgotPasswordOTP = async (req, res, next) => {
     try {
-        if(isNullOrUndefined(req.body.email) || isNullOrUndefined(req.body.otp))
-            return res.status(BAD_REQUEST).json({ success: false, message: 'Insuffecient data' });
+        if (isNullOrUndefined(req.body.email) || isNullOrUndefined(req.body.otp))
+            throw new ErrorHandler(BAD_REQUEST, 'Insuffecient data');
 
-        const userDetails = await findOneUser({ 
+        const userDetails = await findOneUser({
             email: req.body.email,
             "resetPassword.otp": parseInt(req.body.otp),
             "resetPassword.expiresAt": {
@@ -52,8 +54,8 @@ const verifyForgotPasswordOTP = async (req, res) => {
         }, "email");
 
 
-        if(isNullOrUndefined(userDetails))
-            return res.status(BAD_REQUEST).json({ success: false, message: 'Password Mismatch or expired' });
+        if (isNullOrUndefined(userDetails))
+            throw new ErrorHandler(BAD_REQUEST, 'Password Mismatch or expired');
 
         await updateUser({ _id: mongoId(userDetails._id) }, {
             "resetPassword.isOTPVerified": true,
@@ -63,16 +65,16 @@ const verifyForgotPasswordOTP = async (req, res) => {
 
         res.status(OK).json({ success: true, message: 'OTP verified successfully' });
     } catch (error) {
-        res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error });
+        next(error)
     }
 }
 
-const resetNewPassword = async (req, res) => {
+const resetNewPassword = async (req, res, next) => {
     try {
-        if(isNullOrUndefined(req.body.email) || isNullOrUndefined(req.body.password))
-            return res(BAD_REQUEST).json({ success: false, message: 'Insuffecient data' });
+        if (isNullOrUndefined(req.body.email) || isNullOrUndefined(req.body.password))
+            throw new ErrorHandler(BAD_REQUEST, 'Insuffecient data');
 
-        const userDetails = await findOneUser({ 
+        const userDetails = await findOneUser({
             email: req.body.email,
             "resetPassword.isResetDone": false,
             "resetPassword.resetBefore": {
@@ -80,10 +82,10 @@ const resetNewPassword = async (req, res) => {
             }
         }, 'isVerified');
 
-        if(isNullOrUndefined(userDetails) || userDetails.isVerified !== true) 
-            return res.status(UNAUTHORIZED).json({ success: false, message: 'Email Not registered or verified' });
+        if (isNullOrUndefined(userDetails) || userDetails.isVerified !== true)
+            throw new ErrorHandler(UNAUTHORIZED, 'Email Not registered or verified');
 
-        await updateUser({ _id: mongoId(userDetails._id)}, {
+        await updateUser({ _id: mongoId(userDetails._id) }, {
             password: encryptString(req.body.password.trim()),
             tokenValidFrom: new Date(),
             "resetPassword.isResetDone": true
@@ -91,10 +93,10 @@ const resetNewPassword = async (req, res) => {
 
         const mailTemplate = passwordChangedMail(req.body.email);
         sendMail(mailTemplate);
-        
+
         res.status(OK).json({ success: true, message: `Password updated` });
     } catch (error) {
-        res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error });
+        next(error)
     }
 }
 
